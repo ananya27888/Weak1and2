@@ -1,67 +1,49 @@
 import java.util.*;
 
-public class UsernameChecker {
+class FlashSaleInventory {
 
-    private HashMap<String, Integer> users = new HashMap<>();
-    private HashMap<String, Integer> attempts = new HashMap<>();
-    private int userIdCounter = 1;
+    private HashMap<String, Integer> stock = new HashMap<>();
+    private HashMap<String, LinkedHashMap<Integer, Integer>> waitingList = new HashMap<>();
 
-    public boolean checkAvailability(String username) {
-        attempts.put(username, attempts.getOrDefault(username, 0) + 1);
-        return !users.containsKey(username);
+    public void addProduct(String productId, int quantity) {
+        stock.put(productId, quantity);
+        waitingList.put(productId, new LinkedHashMap<>());
     }
 
-    public void registerUser(String username) {
-        if (!users.containsKey(username)) {
-            users.put(username, userIdCounter++);
-        }
+    public String checkStock(String productId) {
+        int available = stock.getOrDefault(productId, 0);
+        return available + " units available";
     }
 
-    public List<String> suggestAlternatives(String username) {
-        List<String> suggestions = new ArrayList<>();
-        int i = 1;
+    public synchronized String purchaseItem(String productId, int userId) {
+        int available = stock.getOrDefault(productId, 0);
 
-        while (suggestions.size() < 3) {
-            String suggestion = username + i;
-            if (!users.containsKey(suggestion)) {
-                suggestions.add(suggestion);
-            }
-            i++;
+        if (available > 0) {
+            stock.put(productId, available - 1);
+            return "Success, " + (available - 1) + " units remaining";
+        } else {
+            LinkedHashMap<Integer, Integer> queue = waitingList.get(productId);
+            int position = queue.size() + 1;
+            queue.put(userId, position);
+            return "Added to waiting list, position #" + position;
         }
-
-        String modified = username.replace("_", ".");
-        if (!users.containsKey(modified)) {
-            suggestions.add(modified);
-        }
-
-        return suggestions;
-    }
-
-    public String getMostAttempted() {
-        String result = "";
-        int max = 0;
-
-        for (String key : attempts.keySet()) {
-            if (attempts.get(key) > max) {
-                max = attempts.get(key);
-                result = key;
-            }
-        }
-
-        return result;
     }
 
     public static void main(String[] args) {
-        UsernameChecker system = new UsernameChecker();
 
-        system.registerUser("john_doe");
+        FlashSaleInventory system = new FlashSaleInventory();
 
-        System.out.println(system.checkAvailability("john_doe"));
-        System.out.println(system.checkAvailability("jane_smith"));
+        system.addProduct("IPHONE15_256GB", 100);
 
-        System.out.println(system.suggestAlternatives("john_doe"));
+        System.out.println(system.checkStock("IPHONE15_256GB"));
 
-        System.out.println(system.getMostAttempted());
+        System.out.println(system.purchaseItem("IPHONE15_256GB", 12345));
+        System.out.println(system.purchaseItem("IPHONE15_256GB", 67890));
+
+        for (int i = 0; i < 100; i++) {
+            system.purchaseItem("IPHONE15_256GB", i);
+        }
+
+        System.out.println(system.purchaseItem("IPHONE15_256GB", 99999));
     }
-
 }
